@@ -111,7 +111,7 @@ NVPL_SPARSE_INC=$(NVPL_PATH)/include
 NVPL_SPARSE_LIB=$(NVPL_PATH)/lib
 
 HPCG_INCLUDES = -I$(INCdir) -I$(INCdir)/$(arch) -I$(MPdir)/include  $(CRAY_CUDATOOLKIT_INCLUDE_OPTS)
-HPCG_LIBS     = -L${MPlib} -lmpi
+HPCG_LIBS     = -L${MPlib} -lmpi -lmpi_cxx
 
 HPCG_INCLUDES += -I$(CUDA_HOME)/include -I$(Mathdir)/include
 HPCG_LIBS += -L$(Mathdir)/lib  -lcuda -lcusparse -lcublas -lcublasLt  -L$(CUDA_HOME)/lib64
@@ -167,6 +167,8 @@ HPCG_DEFS     = $(HPCG_OPTS) $(HPCG_INCLUDES)
 # ----------------------------------------------------------------------
 #
 CUDA_ARCH = -gencode=arch=compute_80,code=sm_80 -gencode=arch=compute_90,code=sm_90
+# Add Ada Lovelace (sm_89, e.g. RTX 4090) and Blackwell (sm_120, e.g. RTX 5080) support
+CUDA_ARCH += -gencode=arch=compute_89,code=sm_89 -gencode=arch=compute_120,code=sm_120 -gencode=arch=compute_120,code=compute_120
 ifeq ($(BUILD_B100), 1)
 CUDA_ARCH += --generate-code arch=compute_100,code=sm_100
 endif
