@@ -11,12 +11,13 @@ import sys
 from pathlib import Path
 
 
-CONFIGS = ["RTX4090", "RTX5080", "DUAL_EQUAL", "DUAL_EQUAL_128"]
+CONFIGS = ["RTX4090", "RTX5080", "DUAL_EQUAL", "DUAL_EQUAL_128", "DUAL_HET"]
 CONFIG_LABELS = {
     "RTX4090": "RTX 4090 single (128³)",
     "RTX5080": "RTX 5080 single (128³)",
-    "DUAL_EQUAL": "Dual equal (global 128×128×512, rank 128³)",
+    "DUAL_EQUAL": "Dual equal (global 128×128×256, rank 128³)",
     "DUAL_EQUAL_128": "Dual equal (global 128³, rank 64³)",
+    "DUAL_HET": "Dual heterogeneous (global 128×128×256, ranks 128×128×160 / 128×128×96)",
 }
 
 
@@ -126,18 +127,26 @@ def main():
     m5080 = all_metrics.get("RTX5080", {}).get("hpcg", {})
     m_dual = all_metrics.get("DUAL_EQUAL", {}).get("hpcg", {})
     m_dual_128 = all_metrics.get("DUAL_EQUAL_128", {}).get("hpcg", {})
+    m_dual_het = all_metrics.get("DUAL_HET", {}).get("hpcg", {})
 
     g4090 = m4090.get("gflops_rating")
     g5080 = m5080.get("gflops_rating")
     g_dual = m_dual.get("gflops_rating")
     g_dual_128 = m_dual_128.get("gflops_rating")
+    g_dual_het = m_dual_het.get("gflops_rating")
 
     if g4090 and g_dual:
-        lines.append(f"- Dual equal (global 128×128×512, rank 128³) vs RTX 4090 single: **{g_dual / g4090:.2f}×**")
+        lines.append(f"- Dual equal (global 128×128×256, rank 128³) vs RTX 4090 single: **{g_dual / g4090:.2f}×**")
     if g4090 and g_dual_128:
         lines.append(f"- Dual equal (global 128³, rank 64³) vs RTX 4090 single: **{g_dual_128 / g4090:.2f}×**")
+    if g4090 and g_dual_het:
+        lines.append(f"- Dual heterogeneous vs RTX 4090 single: **{g_dual_het / g4090:.2f}×**")
     if g5080 and g_dual:
-        lines.append(f"- Dual equal (global 128×128×512, rank 128³) vs RTX 5080 single: **{g_dual / g5080:.2f}×**")
+        lines.append(f"- Dual equal (global 128×128×256, rank 128³) vs RTX 5080 single: **{g_dual / g5080:.2f}×**")
+    if g5080 and g_dual_het:
+        lines.append(f"- Dual heterogeneous vs RTX 5080 single: **{g_dual_het / g5080:.2f}×**")
+    if g_dual and g_dual_het:
+        lines.append(f"- Dual heterogeneous vs dual equal: **{g_dual_het / g_dual:.2f}×**")
     lines.append("")
 
     # NSYS summary
@@ -193,6 +202,8 @@ def main():
     lines.append("  CUDA 0 = RTX 4090, CUDA 1 = RTX 5080.")
     lines.append("- DDOT Max/Min times are only meaningful for dual-GPU configurations and reflect")
     lines.append("  load imbalance between the faster and slower GPU at `MPI_Allreduce` barriers.")
+    lines.append("- DUAL_HET uses `--het-split` to give the RTX 4090 a 128×128×160 domain and the")
+    lines.append("  RTX 5080 a 128×128×96 domain (actual work ratio ~1.67).")
     lines.append("- GPU hardware metrics are sampled by Nsight Systems; values are averages over the")
     lines.append("  profiled window and may differ from peak theoretical values.")
     lines.append("")

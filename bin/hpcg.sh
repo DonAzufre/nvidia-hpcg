@@ -53,6 +53,9 @@ usage() {
   echo "    --of           <int>          activates generating the log into textfiles, instead of stdout (--of 1)"
   echo "    --gss          <int>          GPU slice size for sliced-ELLPACK format"
   echo "    --wt           <int>          specifies the number of seconds for the warmup phase before the timed benchmark"
+  echo "    --het-split    <int>          enable asymmetric GPU split (0=off, 1=on)"
+  echo "    --het-dim      <int>          dimension to split (1=X, 2=Y, 3=Z)"
+  echo "    --het-ratio    <float>        work ratio of fast GPU to slow GPU (e.g. 1.6)"
   echo ""
 }
 
@@ -305,6 +308,33 @@ while [ "$1" != "" ]; do
       fi
       shift
       ;;
+    --het-split )
+      if [ -n "$2" ]; then
+        HET_SPLIT="--hs=$2"
+      else
+        usage
+        exit 1
+      fi
+      shift
+      ;;
+    --het-dim )
+      if [ -n "$2" ]; then
+        HET_DIM="--hd=$2"
+      else
+        usage
+        exit 1
+      fi
+      shift
+      ;;
+    --het-ratio )
+      if [ -n "$2" ]; then
+        HET_RATIO="--hr=$2"
+      else
+        usage
+        exit 1
+      fi
+      shift
+      ;;
   * )
     usage
     exit 1
@@ -380,7 +410,7 @@ fi
 # fi
 # export CUDA_VISIBLE_DEVICES=${GPU}
 
-HPCG_CONTROL="${B} ${L2CMP} ${P2P} ${OF} ${NPX} ${NPY} ${NPZ} ${WT}"
+HPCG_CONTROL="${B} ${L2CMP} ${P2P} ${OF} ${NPX} ${NPY} ${NPZ} ${WT} ${HET_SPLIT} ${HET_DIM} ${HET_RATIO}"
 
 if [[ -z "${NX}" || -z "${NY}" || -z "${NZ}" || -z "${RT}" ]]; then
     if [ -z "${DAT}" ]; then

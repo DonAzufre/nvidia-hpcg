@@ -144,7 +144,18 @@ void SetupHalo_Gpu(SparseMatrix& A)
             int neighborId = neighbors[i];
             neighborsPhysical[i] = logical_rank_to_phys[neighborId];
         }
-        CHECK_CUDART(cudaMalloc(&extToLocMap, sizeof(local_int_t) * localNumberOfRows));
+
+        // With heterogeneous local sizes (e.g. different_dim != NONE), neighbors may
+        // have more rows than this rank.  The received column indices are expressed
+        // in the neighbor's local index space, so extToLocMap must be large enough
+        // to hold the maximum local row count among all ranks.
+        local_int_t maxLocalRows = localNumberOfRows;
+#ifdef INDEX_64
+        MPI_Allreduce(&localNumberOfRows, &maxLocalRows, 1, MPI_LONG_LONG_INT, MPI_MAX, MPI_COMM_WORLD);
+#else
+        MPI_Allreduce(&localNumberOfRows, &maxLocalRows, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+#endif
+        CHECK_CUDART(cudaMalloc(&extToLocMap, sizeof(local_int_t) * maxLocalRows));
         CHECK_CUDART(cudaMalloc(&eltsToRecv_d, sizeof(local_int_t) * totalToBeSent));
 
         CHECK_CUDART(cudaMallocHost(&(sendBuffer), sizeof(double) * totalToBeSent));
@@ -225,7 +236,7 @@ void SetupHalo_Gpu(SparseMatrix& A)
         for (int neighborCount = 0; neighborCount < neiCount; ++neighborCount)
         {
             int neighborId = neighbors[neighborCount];
-            CHECK_CUDART(cudaMemsetAsync(extToLocMap, 0, sizeof(local_int_t) * localNumberOfRows, stream));
+            CHECK_CUDART(cudaMemsetAsync(extToLocMap, 0, sizeof(local_int_t) * maxLocalRows, stream));
             local_int_t str = sendcounts[neighborCount];
             local_int_t end = sendcounts[neighborCount + 1];
             ExtToLocMapCuda(localNumberOfRows, str, end, extToLocMap, eltsToRecv_d);

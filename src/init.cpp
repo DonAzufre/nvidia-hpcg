@@ -253,8 +253,9 @@ int HPCG_Init(int* argc_p, char*** argv_p, HPCG_Params& params)
     char** argv = *argv_p;
     char fname[80];
     int i, j, *iparams;
-    char cparams[][9] = {"--nx=", "--ny=", "--nz=", "--rt=", "--npx=", "--npy=", "--npz=", "--b=", "--l2cmp=", "--mr=",
-        "--exm=", "--g2c=", "--ddm=", "--lpm=", "--p2p=", "--of=", "--gss=", "--css=", "--wt="};
+    char cparams[][16] = {"--nx=", "--ny=", "--nz=", "--rt=", "--npx=", "--npy=", "--npz=", "--b=", "--l2cmp=", "--mr=",
+        "--exm=", "--g2c=", "--ddm=", "--lpm=", "--p2p=", "--of=", "--gss=", "--css=", "--wt=",
+        "--hs=", "--hd=", "--hr="};
     time_t rawtime;
     tm* ptm;
     const int nparams = (sizeof cparams) / (sizeof cparams[0]);
@@ -403,6 +404,25 @@ int HPCG_Init(int* argc_p, char*** argv_p, HPCG_Params& params)
 
     // --css
     params.cpu_slice_size = iparams[17] > 0 ? iparams[17] : 8;
+
+    // --hs : heterogeneous GPU split (0=off, 1=on)
+    params.het_split = iparams[19] > 0 ? 1 : 0;
+
+    // --hd : heterogeneous split dimension (0=auto, 1=X, 2=Y, 3=Z)
+    params.het_dim = iparams[20] == 1 ? X : (iparams[20] == 2 ? Y : (iparams[20] == 3 ? Z : NONE));
+
+    // --hr : heterogeneous ratio (fast GPU / slow GPU)
+    params.het_ratio = 1.5;
+    for (i = 1; i <= argc && argv[i]; ++i)
+    {
+        if (startswith(argv[i], cparams[21]))
+        {
+            double ratio = 0.0;
+            if (sscanf(argv[i] + strlen(cparams[21]), "%lf", &ratio) == 1 && ratio >= 1.0)
+                params.het_ratio = ratio;
+            break;
+        }
+    }
 
     if (params.comm_rank == 0)
     {

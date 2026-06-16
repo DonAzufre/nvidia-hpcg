@@ -138,6 +138,11 @@ struct HPCG_Params_STRUCT
                                // throughout the files
     local_int_t gpu_slice_size;
     local_int_t cpu_slice_size;
+
+    // Heterogeneous GPU-only split parameters
+    int het_split;      //!< Enable asymmetric local-domain split across GPU ranks
+    dim_3d_t het_dim;   //!< Dimension along which the split is performed
+    double het_ratio;   //!< Work ratio of fast GPU to slow GPU (e.g. 1.6)
 };
 /*!
   HPCG_Params is a shorthand for HPCG_Params_STRUCT

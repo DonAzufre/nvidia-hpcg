@@ -301,6 +301,57 @@ void GenerateGeometry(HPCG_Params& params, Geometry* geom)
         }
     }
 
+    // Heterogeneous GPU-only split: assign different local sizes to GPU ranks
+    // along one dimension so that a faster GPU can take more work than a slower
+    // GPU while both still execute the GPU code path.
+    if (params.exec_mode == GPUONLY && params.het_split)
+    {
+        // Pick the split dimension.  Prefer the user-specified dimension if it
+        // has an even process count; otherwise fall back to Z/Y/X.
+        if (params.het_dim != NONE
+            && ((params.het_dim == Z && (npz & 1) == 0) || (params.het_dim == Y && (npy & 1) == 0)
+                || (params.het_dim == X && (npx & 1) == 0)))
+        {
+            user_diff_dim = params.het_dim;
+        }
+        else
+        {
+            if ((npz & 1) == 0)
+                user_diff_dim = Z;
+            else if ((npy & 1) == 0)
+                user_diff_dim = Y;
+            else if ((npx & 1) == 0)
+                user_diff_dim = X;
+        }
+
+        if (user_diff_dim != NONE)
+        {
+            // Even physical MPI ranks are treated as the fast GPU, odd ranks as
+            // the slow GPU.  After the rank reordering below this places fast
+            // ranks at even coordinates along the split dimension.
+            bool is_fast_gpu = (rank % 2 == 0);
+            int& split_size = (user_diff_dim == X) ? nx : (user_diff_dim == Y) ? ny : nz;
+            int fast_size = split_size;
+            int slow_size = fast_size;
+            if (params.het_ratio > 1.0)
+            {
+                int raw_slow = int(std::round((double) fast_size / params.het_ratio));
+                // Multigrid coarsens by 2 on each of the 4 levels.  Experience
+                // shows that local sizes whose coarsest level has an odd dimension
+                // can crash cuSPARSE's SpSV analysis.  Keep the split dimension a
+                // multiple of 16 so that after 3 coarsenings it is still even.
+                slow_size = ((raw_slow + 8) / 16) * 16;
+                if (slow_size < 16)
+                    slow_size = 16;
+                // Guard against a ratio so small it would give a slow size no
+                // smaller than the fast size.
+                if (slow_size >= fast_size)
+                    slow_size = (fast_size / 2 + 8) / 16 * 16;
+            }
+            split_size = is_fast_gpu ? fast_size : slow_size;
+        }
+    }
+
     // Now let us exchange dimensions
     int sendBuf[] = {nx, ny, nz};
 #ifndef HPCG_NO_MPI

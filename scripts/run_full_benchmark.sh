@@ -7,6 +7,7 @@
 #   2. RTX5080      - single GPU, local 128^3
 #   3. DUAL_EQUAL   - 2 GPUs, global 128x128x256, each rank 128^3
 #   4. DUAL_EQUAL_128 - 2 GPUs, global 128x128x128, each rank 64^3
+#   5. DUAL_HET     - 2 GPUs, global 128x128x256, ranks 128x128x160 and 128x128x96
 #
 # Output is written to benchmark_data/<timestamp>/ and is gitignored.
 
@@ -90,11 +91,17 @@ run_config "RTX4090" 1 128 128 128 "0" "0"
 # Configuration 2: RTX 5080 only
 run_config "RTX5080" 1 128 128 128 "1" "0"
 
-# Configuration 3: Dual GPU equal, each rank 128^3
-run_config "DUAL_EQUAL" 2 128 128 256 "0:1" "0:24" --npx 1 --npy 1 --npz 2
+# Configuration 3: Dual GPU equal, global 128x128x256 (each rank 128^3)
+run_config "DUAL_EQUAL" 2 128 128 128 "0:1" "0:24" --npx 1 --npy 1 --npz 2
 
 # Configuration 4: Dual GPU equal, total scale 128^3 (each rank 64^3)
 run_config "DUAL_EQUAL_128" 2 128 128 64 "0:1" "0:24" --npx 1 --npy 1 --npz 2
+
+# Configuration 5: Dual GPU heterogeneous, global 128x128x256.
+# Fast rank (RTX 4090) owns 128x128x160; slow rank (RTX 5080) owns 128x128x96.
+# --het-ratio=1.6 rounds the slow size to a multiple of 16, giving an actual
+# work ratio of 160/96 = 1.667.
+run_config "DUAL_HET" 2 128 128 160 "0:1" "0:24" --npx 1 --npy 1 --npz 2 --het-split 1 --het-ratio 1.6
 
 # Extract metrics and generate summary
 python3 "${SCRIPT_DIR}/extract_metrics.py" "${OUTPUT_DIR}"
