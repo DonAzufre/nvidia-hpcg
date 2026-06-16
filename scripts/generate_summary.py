@@ -158,7 +158,8 @@ def main():
     for cfg in CONFIGS:
         m = all_metrics.get(cfg)
         n = m.get("nsys", {}) if m else {}
-        top = n.get("top_operations", [{}])[0]
+        top_ops = n.get("top_operations", [])
+        top = top_ops[0] if top_ops else {}
         op_name = top.get("operation", "N/A")
         # Truncate very long kernel names
         if len(op_name) > 80:

@@ -51,7 +51,7 @@ NPX=1
 NPY=1
 NPZ=2
 GPU_AFFINITY="0:1"
-CPU_AFFINITY="0:24"
+CPU_AFFINITY="0-7:8-15"
 P2P=0
 
 /usr/bin/mpirun.openmpi --allow-run-as-root \

@@ -58,7 +58,7 @@ NPZ=2
 HET_SPLIT=1
 HET_RATIO=1.6
 GPU_AFFINITY="0:1"
-CPU_AFFINITY="0:24"
+CPU_AFFINITY="0-7:8-15"
 P2P=0
 
 /usr/bin/mpirun.openmpi --allow-run-as-root \
