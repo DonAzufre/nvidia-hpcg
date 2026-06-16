@@ -86,21 +86,23 @@ def parse_nsys_gpu_sum(nsys_rep_path):
     memset_time_ns = 0
 
     for line in rows[:20]:
-        # The line layout is fixed-width.  Split on two or more spaces to
-        # separate the numeric columns from the operation name.
-        parts = re.split(r"\s{2,}", line.strip(), maxsplit=5)
-        if len(parts) < 6:
+        # cuda_gpu_sum columns are:
+        #   Time (%)  Total Time (ns)  Instances  Avg (ns)  Med (ns)  Min (ns)
+        #   Max (ns)  StdDev (ns)  Category  Operation
+        # They are separated by two or more spaces, so a full split lets us
+        # reliably pick Category (single token) and Operation (rest of line).
+        parts = re.split(r"\s{2,}", line.strip())
+        if len(parts) < 10:
             continue
         try:
             pct = float(parts[0])
             total_ns = float(parts[1])
-            operation = parts[5].strip()
+            category = parts[8].strip()
+            operation = parts[9].strip()
         except Exception:
             continue
         total_time_ns += total_ns
-        # Strip the leading numeric index that nsys prints for each row.
-        operation = re.sub(r"^\d+\s*", "", operation)
-        entry = {"percent": pct, "time_ns": total_ns, "operation": operation}
+        entry = {"percent": pct, "time_ns": total_ns, "category": category, "operation": operation}
         if "memcpy" in operation.lower():
             memcpy_time_ns += total_ns
         if "memset" in operation.lower():
@@ -174,16 +176,16 @@ def parse_nsys_gpu_metrics(nsys_rep_path):
             [x for pair in wanted_ids for x in pair],
         )
 
-        # Accumulate values per typeId and metricName.  Nsight stores some
-        # counters as unsigned integers in signed columns; reinterpret those
-        # values as unsigned to avoid negative frequencies and bandwidths.
+        # Accumulate values per typeId and metricName.  Nsight stores these
+        # counters as unsigned 32-bit integers but the SQLite column is signed,
+        # so negative samples wrap around 2^32.  Reinterpret them as unsigned.
         accum = {}
         for type_id, metric_id, value in cur.fetchall():
             name = metric_names.get((type_id, metric_id))
             if name is None:
                 continue
             if value < 0:
-                value &= 0xFFFFFFFFFFFFFFFF
+                value &= 0xFFFFFFFF
             key = (type_id, name)
             accum.setdefault(key, []).append(value)
 

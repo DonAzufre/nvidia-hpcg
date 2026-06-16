@@ -15,7 +15,7 @@ CONFIGS = ["RTX4090", "RTX5080", "DUAL_EQUAL", "DUAL_EQUAL_128"]
 CONFIG_LABELS = {
     "RTX4090": "RTX 4090 single (128³)",
     "RTX5080": "RTX 5080 single (128³)",
-    "DUAL_EQUAL": "Dual equal (global 128×128×256, rank 128³)",
+    "DUAL_EQUAL": "Dual equal (global 128×128×512, rank 128³)",
     "DUAL_EQUAL_128": "Dual equal (global 128³, rank 64³)",
 }
 
@@ -41,14 +41,43 @@ def ns_to_ms(ns):
     return ns / 1e6
 
 
-def gpu_metric(m, name):
-    """Return overall nsys GPU metric value by name."""
+def is_single_gpu(hpcg):
+    """For a single MPI rank, local and global domains are identical."""
+    return (
+        hpcg.get("local_nx") == hpcg.get("global_nx")
+        and hpcg.get("local_ny") == hpcg.get("global_ny")
+        and hpcg.get("local_nz") == hpcg.get("global_nz")
+    )
+
+
+def representative_gpu_metrics(m):
+    """Return the GPU metrics to display for a configuration.
+
+    For single-GPU runs, pick the active GPU (highest GR Active).  For
+    multi-GPU runs, return the overall average across sampled GPUs.
+    """
     if not m:
-        return None
+        return {}
     nsys = m.get("nsys", {})
     gpu = nsys.get("gpu_metrics", {})
-    overall = gpu.get("overall", {})
-    return overall.get(name)
+    hpcg = m.get("hpcg", {})
+    if not is_single_gpu(hpcg):
+        return gpu.get("overall", {})
+
+    per_gpu = gpu.get("per_gpu", {})
+    if not per_gpu:
+        return gpu.get("overall", {})
+
+    def activity(metrics):
+        return metrics.get("GR Active [Throughput %]", 0) or 0
+
+    active_tid = max(per_gpu.keys(), key=lambda tid: activity(per_gpu[tid]))
+    return per_gpu.get(active_tid, {})
+
+
+def gpu_metric(m, name):
+    """Return representative GPU metric value by name."""
+    return representative_gpu_metrics(m).get(name)
 
 
 def main():
@@ -104,11 +133,11 @@ def main():
     g_dual_128 = m_dual_128.get("gflops_rating")
 
     if g4090 and g_dual:
-        lines.append(f"- Dual equal (rank 128³) vs RTX 4090 single: **{g_dual / g4090:.2f}×**")
+        lines.append(f"- Dual equal (global 128×128×512, rank 128³) vs RTX 4090 single: **{g_dual / g4090:.2f}×**")
     if g4090 and g_dual_128:
-        lines.append(f"- Dual equal (global 128³) vs RTX 4090 single: **{g_dual_128 / g4090:.2f}×**")
+        lines.append(f"- Dual equal (global 128³, rank 64³) vs RTX 4090 single: **{g_dual_128 / g4090:.2f}×**")
     if g5080 and g_dual:
-        lines.append(f"- Dual equal (rank 128³) vs RTX 5080 single: **{g_dual / g5080:.2f}×**")
+        lines.append(f"- Dual equal (global 128×128×512, rank 128³) vs RTX 5080 single: **{g_dual / g5080:.2f}×**")
     lines.append("")
 
     # NSYS summary
@@ -143,6 +172,9 @@ def main():
 
     for cfg in CONFIGS:
         m = all_metrics.get(cfg)
+        # Nsight reports GPC Clock Frequency in Hz despite the "[MHz]" label.
+        clock_hz = gpu_metric(m, 'GPC Clock Frequency [MHz]')
+        clock_mhz = clock_hz / 1e6 if clock_hz is not None else None
         lines.append(
             f"| {CONFIG_LABELS[cfg]} | "
             f"{fmt(gpu_metric(m, 'SMs Active [Throughput %]'))} | "
@@ -151,7 +183,7 @@ def main():
             f"{fmt(gpu_metric(m, 'Compute Warps in Flight [Throughput %]'))} | "
             f"{fmt(gpu_metric(m, 'DRAM Read Bandwidth [Throughput %]'))} | "
             f"{fmt(gpu_metric(m, 'DRAM Write Bandwidth [Throughput %]'))} | "
-            f"{fmt(gpu_metric(m, 'GPC Clock Frequency [MHz]'))} |"
+            f"{fmt(clock_mhz)} |"
         )
 
     lines.append("")
