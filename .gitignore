@@ -6,3 +6,5 @@ bin/xhpcg
 bin/xhpcg-cpu
 bin/hpcg20*.txt
 .DS_Store
+build/
+
