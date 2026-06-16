@@ -7,4 +7,11 @@ bin/xhpcg-cpu
 bin/hpcg20*.txt
 .DS_Store
 build/
+benchmark_data/
+*.nsys-rep
+*.sqlite
+*.ncu-rep
+*.ncu-csv
+__pycache__/
+*.pyc
 
