@@ -100,7 +100,8 @@ The wrapper is more fragile because `/tmp` files may be cleaned on reboot.
 A helper script is provided:
 
 ```bash
-bash scripts/run_dual_equal.sh
+bash scripts/run_single_gpu.sh 0 /tmp/rtx4090
+bash scripts/run_single_gpu.sh 1 /tmp/rtx5080
 ```
 
 Equivalent manual command:
@@ -114,6 +115,25 @@ export HWLOC_COMPONENTS="-gl"
   --gpu-affinity 0:1 --cpu-affinity 0:24 \
   --p2p 0 --b 1 \
   --npx 1 --npy 1 --npz 2
+```
+
+## Automated benchmark suite
+
+`scripts/run_full_benchmark.sh` runs all four reference configurations back-to-back
+and produces a `summary.md` report:
+
+1. RTX 4090 single, local `128³`
+2. RTX 5080 single, local `128³`
+3. Dual equal, global `128×128×512` (rank `128³`)
+4. Dual equal, global `128³` (rank `64³`)
+
+The script also captures an Nsight Systems profile with GPU hardware metrics for
+each configuration. Output is written to `benchmark_data/<timestamp>/`, which is
+`gitignore`d.
+
+```bash
+bash scripts/run_full_benchmark.sh
+# -> benchmark_data/YYYY-MM-DD_HH-MM-SS/summary.md
 ```
 
 ## CUDA device ordering note
@@ -142,7 +162,17 @@ have different performance, the faster GPU waits for the slower one at
 
 ## Single-GPU reference runs
 
-To compare against single-GPU performance:
+To compare against single-GPU performance, use `scripts/run_single_gpu.sh`:
+
+```bash
+# RTX 4090 (CUDA device 0)
+bash scripts/run_single_gpu.sh 0 /tmp/rtx4090 60
+
+# RTX 5080 (CUDA device 1)
+bash scripts/run_single_gpu.sh 1 /tmp/rtx5080 60
+```
+
+Equivalent manual commands:
 
 ```bash
 # RTX 4090 (CUDA device 0)
