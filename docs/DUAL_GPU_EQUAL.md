@@ -51,6 +51,50 @@ bash build_sample.sh "" "" "" "" 1 0 1 0
 The last five arguments enable: `USE_CUDA=1`, `USE_NCCL=1`, no Grace,
 no engineering version.
 
+## SSH / MPI launcher setup
+
+OpenMPI uses SSH to spawn ranks even when all processes stay on the local
+node. In this environment the SSH server listens on port **51111**, so
+OpenMPI (and therefore `mpirun`) must be told how to connect.
+
+There are two common ways:
+
+### Option A: `~/.ssh/config` (recommended)
+
+Create or edit `~/.ssh/config` so that plain `ssh localhost` uses port 51111:
+
+```bash
+mkdir -p ~/.ssh
+cat > ~/.ssh/config <<'EOF'
+Host localhost 127.0.0.1 dell-server
+    HostName 127.0.0.1
+    Port 51111
+    StrictHostKeyChecking no
+    BatchMode yes
+    PasswordAuthentication no
+    ForwardX11 no
+EOF
+chmod 600 ~/.ssh/config
+```
+
+After this, no wrapper script or extra environment variable is needed.
+
+### Option B: SSH wrapper script
+
+Create a wrapper and point OpenMPI to it:
+
+```bash
+cat > /tmp/ssh_for_mpi <<'EOF'
+#!/bin/bash
+exec ssh -p 51111 -o StrictHostKeyChecking=no -o BatchMode=yes \
+     -o PasswordAuthentication=no -o ForwardX11=no "$@"
+EOF
+chmod +x /tmp/ssh_for_mpi
+export OMPI_MCA_plm_rsh_agent=/tmp/ssh_for_mpi
+```
+
+The wrapper is more fragile because `/tmp` files may be cleaned on reboot.
+
 ## Run dual-GPU equal workload
 
 A helper script is provided:
@@ -62,7 +106,6 @@ bash scripts/run_dual_equal.sh
 Equivalent manual command:
 
 ```bash
-export OMPI_MCA_plm_rsh_agent=/tmp/ssh_for_mpi
 export HWLOC_COMPONENTS="-gl"
 
 /usr/bin/mpirun.openmpi --allow-run-as-root --oversubscribe --bind-to none -np 2 \
