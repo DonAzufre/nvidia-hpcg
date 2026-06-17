@@ -18,7 +18,7 @@
   --p2p 0 --b 1 --npx 1 --npy 1 --npz 2
 ```
 
-其中 `--gpu-affinity 0:1` 表示 rank 0 使用 CUDA 0，rank 1 使用 CUDA 1；`--cpu-affinity 0-7:8-15` 为两个 rank 分配不同的 CPU 核心，避免 CPU 侧成为瓶颈。
+其中 `--gpu-affinity 0:1` 表示 rank 0 使用 CUDA 0，rank 1 使用 CUDA 1；`--cpu-affinity 0-7:8-15` 为两个 rank 分配不同的 CPU 核心，减少 CPU 侧争用。
 
 == 异构分区设计
 

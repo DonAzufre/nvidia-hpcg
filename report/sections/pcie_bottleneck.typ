@@ -8,7 +8,7 @@ RTX 5080 单卡 HPCG 性能仅约 120 GFLOP/s，约为 RTX 4090 的 64%。这一
 
 1. *`/sys/bus/pci/devices/...`* 内核接口读取显卡的 PCIe 最大/当前链路速度与宽度。
 2. *`nvidia-smi`* 在 HPCG 满载时实时采样 `pcie.link.gen.current` 和 `pcie.link.width.current`。
-3. *`scripts/monitor_dual_gpu.py`* 在 DUAL_HET 运行期间每 1 秒记录一次 GPU 状态，包括 PCIe 宽度、RX/TX 吞吐、利用率、温度、功耗。
+3. *`scripts/monitor_dual_gpu.py`* 在 DUAL_HET 运行期间每 1 秒记录一次 GPU 状态，包括 PCIe 宽度、RX/TX 吞吐、利用率、温度、功耗。其中 RX/TX 分别表示 GPU 通过 PCIe 链路从主机端接收（Receive）和向主机端发送（Transmit）的数据速率。
 
 == PCIe 链路状态
 
@@ -31,7 +31,7 @@ RTX 5080 单卡 HPCG 性能仅约 120 GFLOP/s，约为 RTX 4090 的 64%。这一
 
 #figure(
   image("../figures/pcie_width_throughput.png", width: 95%),
-  caption: [DUAL_HET 运行期间两张显卡的 PCIe 链路宽度与 RX/TX 吞吐]
+  caption: [DUAL_HET 运行期间两张显卡的 PCIe 链路宽度与 RX/TX 吞吐（RX=主机→GPU，TX=GPU→主机）]
 )
 
 上图显示：
@@ -76,14 +76,8 @@ HPCG 的 halo 交换、`MPI_Allreduce`（DDOT）都需要在 GPU 显存与主机
 - RTX 4090 位于 `0000:a6:00.0`，挂在 Skylake-E CPU 直连 Root Port，对应全速 x16 插槽。
 - RTX 5080 位于 `0000:02:00.0`，挂在 C620 芯片组 Root Port，对应 Slot 2 这种 *x16 物理、x1 电气* 的插槽。
 
-== 结论与建议
+== 结论
 
 RTX 5080 性能偏低的根本原因是它被安装在了主板上一个 *电气仅 x1* 的 PCIe 插槽中，导致 GPU↔CPU 数据传输严重受限。这不是驱动 bug，也不是空闲降速，而是硬件安装位置问题。
 
-修复建议：
-
-1. *物理换槽*：将 RTX 5080 从 Slot 2 移到 Slot 4 或 Slot 5（全速 x16 CPU 直连插槽），与 RTX 4090 一起占用两个全速 x16 插槽。
-2. *BIOS 检查*：确认 PCIe ASPM 设置不会导致链路降速；确认没有手动将插槽配置为 x1。
-3. *换槽后重跑基准*：预期 RTX 5080 单卡性能和双卡总吞吐都会显著提升，DUAL_EQUAL 的总吞吐应能超过 RTX 4090 单卡。
-
-在换槽之前，软件层面的优化（如 `--het-split` 非异划分、CPU affinity 调整）只能在一定程度上缓解 x1 瓶颈带来的负载不均，无法彻底消除该硬件限制。
+软件层面的优化（如 `--het-split` 非异划分、CPU affinity 调整）只能在一定程度上缓解 x1 瓶颈带来的负载不均，无法彻底消除该硬件限制。只有将 RTX 5080 安装到主板全速 x16 插槽后，其单卡性能和双卡总吞吐才有可能达到与 RTX 4090 相称的水平。

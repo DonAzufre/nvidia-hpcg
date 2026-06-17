@@ -54,9 +54,11 @@ DUAL_EQUAL 与 DUAL_EQUAL_128 的 GFLOP/s 均低于 RTX 4090 单卡，核心原�
 
 `ddot_imbalance.png` 展示了双卡配置中 DDOT `MPI_Allreduce` 的最大/最小耗时：
 
-- *DUAL_EQUAL*：Max 31.30 s，Min 0.25 s，差距约 125 倍。
-- *DUAL_EQUAL_128*：Max 28.02 s，Min 0.21 s，差距约 133 倍。
-- *DUAL_HET*：Max 16.78 s，Min 11.58 s，差距缩小到约 1.45 倍。
+- *DUAL_EQUAL*：Max 31.30 s，Min 0.25 s，Max/Min 比值约 125 倍。
+- *DUAL_EQUAL_128*：Max 28.02 s，Min 0.21 s，Max/Min 比值约 133 倍。
+- *DUAL_HET*：Max 16.78 s，Min 11.58 s，Max/Min 比值约 1.45 倍。
+
+上述 Max/Min 比值分别由同一配置内 `MPI_Allreduce` 的最长等待时间与最短等待时间相除得到，用于衡量两卡之间的同步失衡程度。
 
 #figure(
   image("../figures/ddot_imbalance.png", width: 90%),
@@ -74,19 +76,17 @@ DUAL_EQUAL_128 的情况更为极端：虽然全局规模保持 128³，但每 r
 
 == 异构分区的效果
 
-DUAL_HET 通过 `--het-split --het-ratio 1.6` 将快卡子域设为 160、慢卡子域设为 96，实际工作量比例约为 1.667:1。该比例与两卡单卡性能比（189.22 / 120.70 ≈ 1.568）接近，因此两块 GPU 到达 `MPI_Allreduce` 的时间几乎同步，DDOT Max/Min 差距从 125 倍缩小到 1.45 倍。
+DUAL_HET 通过 `--het-split --het-ratio 1.6` 将快卡子域设为 160、慢卡子域设为 96，实际工作量比例约为 1.667:1。该比例与两卡单卡性能比（189.22 / 120.70 ≈ 1.568）接近，因此两块 GPU 到达 `MPI_Allreduce` 的时间几乎同步：DUAL_EQUAL 的 DDOT Max/Min 比值为 125 倍，DUAL_HET 降至 1.45 倍。
 
 `nsys_breakdown.png` 显示，DUAL_HET 的总 CUDA kernel 时间约为 56.41 s，低于 DUAL_EQUAL 的 59.65 s 和 DUAL_EQUAL_128 的 49.99 s（后两者因等待导致有效 kernel 利用率下降）。更重要的是，DUAL_HET 的 memcpy 时间从 DUAL_EQUAL 的 11.94 s 降至 11.21 s，说明同步等待减少后，数据搬移开销也随之下降。虽然 DUAL_HET 的单卡 kernel 时间仍高于 RTX 4090 单卡，但两块 GPU 并行工作使 wall-clock 时间缩短，最终 GFLOP/s 达到 188.96，几乎与 RTX 4090 单卡持平。
 
 从 `gpu_metrics_bar.png` 观察，DUAL_HET 的平均 SM active（37.44%）、SM issue（1.81%）、GR active（50.93%）等指标介于 RTX 4090 单卡与 RTX 5080 单卡之间，这是两张卡指标的平均结果。其 DRAM Read 带宽利用率为 32.91%，虽然低于 DUAL_EQUAL 的 35.05%（两卡平均），但 DUAL_EQUAL 的 35.05% 实际上是快卡 35.79% 与慢卡 34.31% 的平均，两者差异较小；而 DUAL_HET 的快卡（25.05%）与慢卡（40.77%）差异较大，反映了按能力分配负载后两卡工作模式的差异。总体而言，DUAL_HET 的快卡不再长时间等待，慢卡也能在相近时刻完成，整体吞吐得到提升。
 
-== 规模与配置选择
+== 结论
 
 综合五种配置，可以得出以下结论：
 
 1. *单卡效率*：RTX 4090 在本负载下的单卡效率最高；RTX 5080 受限于 SM 利用率、DRAM 带宽利用率、运行频率以及较大的 DDOT 同步开销，效率明显偏低。
 2. *对称双卡的瓶颈*：当两块 GPU 性能差异较大时，对称划分会导致严重的负载不均衡，DDOT `MPI_Allreduce` 成为主要瓶颈。
-3. *异构划分的收益*：通过 `--het-ratio` 按能力比例分配工作量，可以显著减少同步等待，使双卡总吞吐接近甚至追平快卡单卡。
-4. *本地规模的重要性*：过小的本地规模（如 64³）会降低 GPU 利用率并增加迭代次数，不适合作为双卡扩展策略。
-
-因此，对于 RTX 4090 + RTX 5080 这类异构双 GPU 工作站，推荐采用 `DUAL_HET` 式的非对称划分，而非简单的等分策略。后续扩展性实验将进一步验证更大问题规模下该结论是否依然成立。
+3. *异构划分的收益*：通过 `--het-ratio` 按能力比例分配工作量，显著减少了同步等待，使双卡总吞吐接近甚至追平快卡单卡。
+4. *本地规模的重要性*：过小的本地规模（如 64³）会降低 GPU 利用率并增加迭代次数，从而限制双卡扩展效率。
