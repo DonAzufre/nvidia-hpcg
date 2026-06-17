@@ -1,0 +1,142 @@
+{
+  "RTX4090": {
+    "gflops_rating": 189.225,
+    "hist_rating": 189.961,
+    "exec_time": 134.65,
+    "ddot_max": 0.0116354,
+    "ddot_min": 0.0116354,
+    "global_size": [
+      128,
+      128,
+      128
+    ],
+    "local_size": [
+      128,
+      128,
+      128
+    ],
+    "total_iterations": 33500,
+    "total_kernel_and_mem_time_ms": 62528.875269,
+    "memcpy_time_ms": 287.442279,
+    "memset_time_ms": 112.728803,
+    "sm_active_pct": 40.45136760480751,
+    "sm_issue_pct": 1.6981682447128832,
+    "gr_active_pct": 49.87490437276335,
+    "compute_warps_pct": 27.53944709233751,
+    "dram_read_pct": 35.321869490135086,
+    "dram_write_pct": 2.093918597725128,
+    "gpc_clock_mhz": 2552354680.3034573
+  },
+  "RTX5080": {
+    "gflops_rating": 120.705,
+    "hist_rating": 121.115,
+    "exec_time": 129.383,
+    "ddot_max": 0.00706789,
+    "ddot_min": 0.00706789,
+    "global_size": [
+      128,
+      128,
+      128
+    ],
+    "local_size": [
+      128,
+      128,
+      128
+    ],
+    "total_iterations": 20500,
+    "total_kernel_and_mem_time_ms": 41784.624721,
+    "memcpy_time_ms": 1805.535198,
+    "memset_time_ms": 818.275336,
+    "sm_active_pct": 21.90735027557189,
+    "sm_issue_pct": 1.2301480463855512,
+    "gr_active_pct": 35.71805514956942,
+    "compute_warps_pct": 14.861434295349301,
+    "dram_read_pct": 19.392074297161994,
+    "dram_write_pct": 1.4241923316470797,
+    "gpc_clock_mhz": 1179059251.0496461
+  },
+  "DUAL_EQUAL": {
+    "gflops_rating": 178.736,
+    "hist_rating": 179.58,
+    "exec_time": 151.932,
+    "ddot_max": 31.3047,
+    "ddot_min": 0.247224,
+    "global_size": [
+      128,
+      128,
+      256
+    ],
+    "local_size": [
+      128,
+      128,
+      128
+    ],
+    "total_iterations": 17700,
+    "total_kernel_and_mem_time_ms": 71812.182043,
+    "memcpy_time_ms": 11941.486127,
+    "memset_time_ms": 220.192916,
+    "sm_active_pct": 39.69682047037422,
+    "sm_issue_pct": 2.0085187906768347,
+    "gr_active_pct": 52.339875126120546,
+    "compute_warps_pct": 27.35379894712805,
+    "dram_read_pct": 35.05346214863029,
+    "dram_write_pct": 2.4764092390918524,
+    "gpc_clock_mhz": 2753708446.2672806
+  },
+  "DUAL_EQUAL_128": {
+    "gflops_rating": 157.486,
+    "hist_rating": 158.992,
+    "exec_time": 149.07,
+    "ddot_max": 28.0236,
+    "ddot_min": 0.212949,
+    "global_size": [
+      128,
+      128,
+      128
+    ],
+    "local_size": [
+      128,
+      128,
+      64
+    ],
+    "total_iterations": 30900,
+    "total_kernel_and_mem_time_ms": 67120.524638,
+    "memcpy_time_ms": 16737.588867,
+    "memset_time_ms": 385.683156,
+    "sm_active_pct": 30.370155612740476,
+    "sm_issue_pct": 1.6360201737553524,
+    "gr_active_pct": 46.04925433440282,
+    "compute_warps_pct": 19.537341386258987,
+    "dram_read_pct": 26.244487621297232,
+    "dram_write_pct": 1.6073528601185738,
+    "gpc_clock_mhz": 2757733763.146517
+  },
+  "DUAL_HET": {
+    "gflops_rating": 188.956,
+    "hist_rating": 190.066,
+    "exec_time": 137.184,
+    "ddot_max": 16.7769,
+    "ddot_min": 11.5805,
+    "global_size": [
+      128,
+      128,
+      256
+    ],
+    "local_size": [
+      128,
+      128,
+      160
+    ],
+    "total_iterations": 16900,
+    "total_kernel_and_mem_time_ms": 67927.11009,
+    "memcpy_time_ms": 11208.574564,
+    "memset_time_ms": 311.781265,
+    "sm_active_pct": 37.438482500923215,
+    "sm_issue_pct": 1.8139455549455348,
+    "gr_active_pct": 50.925481694184654,
+    "compute_warps_pct": 26.474792453755995,
+    "dram_read_pct": 32.90890064366088,
+    "dram_write_pct": 2.3382751949382805,
+    "gpc_clock_mhz": 2752532551.4430285
+  }
+}

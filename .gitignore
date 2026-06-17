@@ -15,4 +15,5 @@ benchmark_data/
 __pycache__/
 *.pyc
 run_full_benchmark.log
+report/.venv/
 
