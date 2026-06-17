@@ -24,4 +24,10 @@
 #include "sections/analysis.typ"
 #pagebreak()
 
+#include "sections/dim_partition.typ"
+#pagebreak()
+
+#include "sections/pcie_bottleneck.typ"
+#pagebreak()
+
 #include "sections/scaling.typ"
